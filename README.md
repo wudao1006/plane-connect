@@ -45,6 +45,8 @@ cp .env.example .env
 ./scripts/run-sync.sh OPINION --template brief --limit 10
 ```
 
+`run-verify.sh` and `run-sync.sh` can also auto-bootstrap `.venv` from source clone mode (using `uv`) when `.venv` is missing.
+
 ## Core capabilities
 
 - Sync issues from a Plane project

@@ -8,7 +8,29 @@ Repository:
 https://github.com/wudao1006/plane-connect.git
 ```
 
-## Quick Install (Claude Code)
+## Preferred: Download Portable Package (includes `.venv`)
+
+```bash
+mkdir -p ~/.claude/skills
+cd ~/.claude/skills
+curl -L -o plane-sync-portable.tar.gz \
+  https://github.com/wudao1006/plane-connect/raw/main/portable/plane-sync-portable-linux-x86_64.tar.gz
+tar -xzf plane-sync-portable.tar.gz
+mv plane-connect plane-sync
+cd plane-sync
+```
+
+Then run:
+
+```bash
+cp .env.example .env
+./scripts/run-verify.sh
+./scripts/run-sync.sh OPINION --template brief --limit 10
+```
+
+## Alternative: Source Clone (auto-bootstrap)
+
+### Claude Code
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -16,7 +38,7 @@ git clone https://github.com/wudao1006/plane-connect.git ~/.claude/skills/plane-
 cd ~/.claude/skills/plane-sync
 ```
 
-## Quick Install (Codex)
+### Codex
 
 ```bash
 mkdir -p ~/.codex/skills
@@ -24,29 +46,8 @@ git clone https://github.com/wudao1006/plane-connect.git ~/.codex/skills/plane-s
 cd ~/.codex/skills/plane-sync
 ```
 
-## Portable Package (includes `.venv`)
-
-Build once on the source machine:
-
-```bash
-./scripts/build-portable-bundle.sh
-```
-
-Distribute:
-
-```text
-dist/plane-sync-portable-<timestamp>.tar.gz
-```
-
-On target machine:
-
-```bash
-tar -xzf plane-sync-portable-<timestamp>.tar.gz
-cd plane-connect
-cp .env.example .env
-./scripts/run-verify.sh
-./scripts/run-sync.sh OPINION --template brief --limit 10
-```
+Source mode no longer requires manual pip setup:
+`./scripts/run-verify.sh` and `./scripts/run-sync.sh` auto-bootstrap `.venv` via `uv` when missing.
 
 ## Configure Auth
 
@@ -70,18 +71,9 @@ python3 -m plane_skills.config_manager --init-auth
 
 ## Dependency Strategy
 
-### Preferred (no system pip required)
-
-```bash
-uv run --with requests --with python-dotenv --with tqdm --with colorama python3 verify_setup.py
-```
-
-### Alternative (if pip available)
-
-```bash
-python3 -m pip install -r requirements.txt
-python3 verify_setup.py
-```
+No manual dependency install is required when using:
+- portable package (bundled `.venv`)
+- or source mode with `./scripts/run-verify.sh` / `./scripts/run-sync.sh`
 
 ## Use the Skill
 
@@ -94,7 +86,8 @@ python3 verify_setup.py
 ## Troubleshooting for AI Agents
 
 1. `pip: command not found`
-- Use `uv run --with ... python3 verify_setup.py` (no pip required).
+- Do not run `pip install ...`.
+- Use `./scripts/run-verify.sh` (auto-bootstrap) or portable package mode.
 
 2. `EOFError` during `--init-auth`
 - You are in non-interactive shell; use `--non-interactive` with explicit flags.
@@ -106,12 +99,13 @@ python3 verify_setup.py
 - Check `PLANE_BASE_URL`, `PLANE_API_KEY`, network, and permissions.
 
 5. Running bundled `.venv` fails on another machine
-- Rebuild bundle on the target OS/architecture (virtual environments are not fully cross-platform portable).
+- Use source clone mode (auto-bootstrap), or rebuild portable package on target OS/architecture.
 
 ## AI Prompt Template
 
 ```text
 Install plane-sync from https://github.com/wudao1006/plane-connect.git to ~/.claude/skills/plane-sync,
-run non-interactive auth setup with my Plane credentials, then verify using:
-uv run --with requests --with python-dotenv --with tqdm --with colorama python3 verify_setup.py
+run non-interactive auth setup with my Plane credentials, then run:
+./scripts/run-verify.sh
+./scripts/run-sync.sh OPINION --template brief --limit 10
 ```

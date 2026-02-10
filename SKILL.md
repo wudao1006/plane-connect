@@ -25,6 +25,9 @@ Preferred runtime command:
 ./scripts/run-sync.sh PROJECT_ID [options]
 ```
 
+`run-sync.sh` auto-bootstraps `.venv` via `uv` when missing.
+Do not run `pip install` or `uv add` manually during skill execution.
+
 Fallback (without bundled `.venv`):
 
 ```bash
