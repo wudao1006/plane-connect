@@ -14,4 +14,12 @@ if [ "$#" -lt 1 ]; then
   exit 1
 fi
 
-exec .venv/bin/python -m plane_skills.plane_sync_skill "$@"
+exec .venv/bin/python - "$@" <<'PY'
+import shlex
+import sys
+from plane_skills.plane_sync_skill import plane_sync_skill
+
+args = sys.argv[1:]
+args_string = shlex.join(args)
+plane_sync_skill(args_string=args_string)
+PY

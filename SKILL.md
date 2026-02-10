@@ -10,6 +10,30 @@ description: Use when Claude Code needs to sync Plane project tasks, filter by a
 Use `plane-sync` to pull tasks from Plane and generate AI-friendly Markdown reports.
 Run through `plane_skills/plane_sync_skill.py` with filters and templates.
 
+## AI Execution Rules (Critical)
+
+When a user asks to sync tasks, do not only describe steps.
+
+1. Execute the sync command immediately.
+2. Wait for command completion and capture output.
+3. Report concrete results: project, total tasks, filtered tasks, output file path.
+4. If command fails, report the exact error and run one diagnostic command (`./scripts/run-verify.sh`).
+
+Preferred runtime command:
+
+```bash
+./scripts/run-sync.sh PROJECT_ID [options]
+```
+
+Fallback (without bundled `.venv`):
+
+```bash
+uv run --with requests --with python-dotenv --with tqdm --with colorama python3 -m plane_skills.plane_sync_skill PROJECT_ID [options]
+```
+
+Do not use `env | grep plane` as the only check.
+`ConfigManager` loads `.env` automatically.
+
 ## Quick Start
 
 ```bash
@@ -78,6 +102,7 @@ MY_EMAIL="your-email@company.com"
 - Wrong project id: confirm the project key in Plane.
 - Empty output: relax filters (`--status`, `--assignee`, `--priority`) and retry.
 - Stale assignee names: add `--refresh-users`.
+- Skill loaded but nothing executed: run `./scripts/run-sync.sh ...` explicitly.
 
 ## Implementation Pointers
 
