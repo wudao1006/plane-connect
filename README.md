@@ -2,6 +2,31 @@
 
 Plane Sync is a lightweight Claude Skill for syncing Plane project tasks and producing AI-friendly Markdown reports.
 
+## Installing This Skill
+
+This repository follows the same distribution pattern used by public skill repositories:
+- one skill folder with `SKILL.md` metadata
+- optional `agents/*.yml` UI metadata
+- reusable scripts/resources in the same repository
+
+### Codex (manual install)
+
+```bash
+mkdir -p ~/.codex/skills
+git clone https://github.com/wudao1006/plane-connect.git ~/.codex/skills/plane-sync
+```
+
+### Claude Code (manual install)
+
+```bash
+mkdir -p ~/.claude/skills
+git clone https://github.com/wudao1006/plane-connect.git ~/.claude/skills/plane-sync
+```
+
+After installation, restart the client so the new skill is discovered.
+
+For an AI-oriented install guide (copy/paste prompts + commands), see `AI_DOWNLOAD.md`.
+
 ## Core capabilities
 
 - Sync issues from a Plane project
