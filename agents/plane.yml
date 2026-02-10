@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plane Sync"
+  short_description: "Sync Plane tasks and generate AI-ready markdown reports"
+  default_prompt: "Use $plane-sync to sync tasks for project MOBILE and generate a standup report."

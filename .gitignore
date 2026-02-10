@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.plane-skills/
+plane_skill_real_test.md

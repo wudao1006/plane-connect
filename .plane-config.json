@@ -1,0 +1,12 @@
+{
+  "plane": {
+    "workspace_slug": "project-workspace"
+  },
+  "filter": {
+    "default_assignee": "project-user",
+    "max_results": 50
+  },
+  "report": {
+    "default_format": "json"
+  }
+}
