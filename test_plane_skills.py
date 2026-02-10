@@ -88,7 +88,8 @@ def test_interactive_auth_setup() -> bool:
                 "https://plane.demo.com",  # base url
                 "demo-workspace",          # workspace
                 "demo@example.com",        # email
-            ]), patch("getpass.getpass", return_value="plane_demo_key"):
+            ]), patch("getpass.getpass", return_value="plane_demo_key"), \
+                patch("sys.stdin.isatty", return_value=True):
                 run_interactive_auth_setup(project_dir=temp_dir)
 
             env_path = Path(temp_dir) / ".env"
@@ -102,6 +103,35 @@ def test_interactive_auth_setup() -> bool:
         return True
     except Exception as exc:
         print(f"❌ 交互式认证向导失败: {exc}")
+        return False
+
+
+def test_non_interactive_auth_setup() -> bool:
+    print("\n🧪 测试非交互认证向导...")
+    try:
+        from plane_skills.config_manager import run_interactive_auth_setup
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            run_interactive_auth_setup(
+                project_dir=temp_dir,
+                base_url="https://plane.noninteractive.com",
+                api_key="plane_noninteractive_key",
+                workspace="noninteractive-workspace",
+                email="noninteractive@example.com",
+                non_interactive=True,
+            )
+
+            env_path = Path(temp_dir) / ".env"
+            content = env_path.read_text(encoding="utf-8")
+            assert 'PLANE_BASE_URL="https://plane.noninteractive.com"' in content
+            assert 'PLANE_API_KEY="plane_noninteractive_key"' in content
+            assert 'PLANE_WORKSPACE="noninteractive-workspace"' in content
+            assert 'MY_EMAIL="noninteractive@example.com"' in content
+
+        print("✅ 非交互认证向导通过")
+        return True
+    except Exception as exc:
+        print(f"❌ 非交互认证向导失败: {exc}")
         return False
 
 
@@ -173,6 +203,7 @@ def run_all_tests() -> bool:
         test_argument_parsing,
         test_env_loading_from_dotenv,
         test_interactive_auth_setup,
+        test_non_interactive_auth_setup,
         test_template_render,
         test_integration_with_mocks,
     ]

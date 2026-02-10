@@ -27,6 +27,24 @@ After installation, restart the client so the new skill is discovered.
 
 For an AI-oriented install guide (copy/paste prompts + commands), see `AI_DOWNLOAD.md`.
 
+## Portable Bundle (with `.venv`)
+
+If you want a package that includes the virtual environment:
+
+```bash
+./scripts/build-portable-bundle.sh
+```
+
+This creates `dist/plane-sync-portable-<timestamp>.tar.gz`.
+
+After extracting:
+
+```bash
+cp .env.example .env
+./scripts/run-verify.sh
+./scripts/run-sync.sh OPINION --template brief --limit 10
+```
+
 ## Core capabilities
 
 - Sync issues from a Plane project
@@ -46,6 +64,14 @@ verify_setup.py          # Environment and structure checks
 
 ## Setup
 
+Preferred (works even when `pip` is unavailable):
+
+```bash
+uv run --with requests --with python-dotenv --with tqdm --with colorama python3 verify_setup.py
+```
+
+Alternative (if `pip` is available):
+
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
@@ -64,6 +90,18 @@ Or run interactive first-time auth setup:
 
 ```bash
 python3 -m plane_skills.config_manager --init-auth
+```
+
+For AI/CI (non-interactive) setup:
+
+```bash
+python3 -m plane_skills.config_manager \
+  --init-auth \
+  --non-interactive \
+  --base-url "https://your-plane-instance.com" \
+  --api-key "plane_api_your_api_key_here" \
+  --workspace "your-workspace-slug" \
+  --email "your-email@company.com"
 ```
 
 ## Usage

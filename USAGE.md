@@ -14,6 +14,18 @@ python3 -m plane_skills.config_manager --init-auth
 
 This wizard writes project `.env` with `PLANE_BASE_URL`, `PLANE_API_KEY`, `PLANE_WORKSPACE`, and `MY_EMAIL`.
 
+## First-time Non-interactive Auth (AI/CI)
+
+```bash
+python3 -m plane_skills.config_manager \
+  --init-auth \
+  --non-interactive \
+  --base-url "https://your-plane-instance.com" \
+  --api-key "plane_api_your_api_key_here" \
+  --workspace "your-workspace-slug" \
+  --email "your-email@company.com"
+```
+
 ## Options
 
 | Option | Type | Default | Description |
@@ -73,4 +85,10 @@ sync_high_priority_tasks("MOBILE")
 
 ```bash
 python3 verify_setup.py
+```
+
+If using bundled virtual environment package:
+
+```bash
+./scripts/run-verify.sh
 ```

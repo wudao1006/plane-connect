@@ -8,6 +8,7 @@ import json
 import os
 import logging
 import getpass
+import sys
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, List
 from dataclasses import dataclass, asdict
@@ -499,15 +500,23 @@ def get_config() -> GlobalConfig:
     return get_config_manager().get_config()
 
 
-def run_interactive_auth_setup(project_dir: Optional[Union[str, Path]] = None):
-    """首次使用时的交互式认证配置向导，写入项目 .env。"""
+def run_interactive_auth_setup(
+    project_dir: Optional[Union[str, Path]] = None,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+    workspace: Optional[str] = None,
+    email: Optional[str] = None,
+    non_interactive: bool = False,
+):
+    """首次使用认证配置向导，写入项目 .env（支持交互与非交互模式）。"""
     project_path = Path(project_dir) if project_dir else Path.cwd()
     env_path = project_path / ".env"
 
-    print("=== Plane Sync 首次认证向导 ===")
-    print(f"项目目录: {project_path}")
-    print("")
-    print("请输入 Plane 连接信息（回车可保留当前值）")
+    if not non_interactive:
+        print("=== Plane Sync 首次认证向导 ===")
+        print(f"项目目录: {project_path}")
+        print("")
+        print("请输入 Plane 连接信息（回车可保留当前值）")
 
     existing = {}
     if env_path.exists():
@@ -518,20 +527,54 @@ def run_interactive_auth_setup(project_dir: Optional[Union[str, Path]] = None):
             key, value = line.split("=", 1)
             existing[key.strip()] = value.strip().strip('"').strip("'")
 
-    def ask(name: str, prompt: str, secret: bool = False, default: str = "") -> str:
+    def ask(
+        name: str,
+        prompt: str,
+        supplied: Optional[str] = None,
+        secret: bool = False,
+        default: str = "",
+        required: bool = False,
+    ) -> str:
         current = existing.get(name, default)
-        label = f"{prompt} [{current}]:" if current else f"{prompt}:"
-        if secret:
-            value = getpass.getpass(label + " ")
-        else:
-            value = input(label + " ")
-        value = value.strip()
-        return value if value else current
+        if supplied is not None and supplied.strip():
+            return supplied.strip()
 
-    base_url = ask("PLANE_BASE_URL", "Plane Base URL")
-    api_key = ask("PLANE_API_KEY", "Plane API Key", secret=True)
-    workspace = ask("PLANE_WORKSPACE", "Plane Workspace Slug")
-    email = ask("MY_EMAIL", "Your Email (optional)")
+        if non_interactive:
+            if required and not current:
+                raise RuntimeError(
+                    f"{name} is required in non-interactive mode. "
+                    f"Use --{name.lower().replace('_', '-')} or set it in {env_path}."
+                )
+            return current
+
+        if not sys.stdin.isatty():
+            raise RuntimeError(
+                "Interactive setup requires a TTY. "
+                "Use --non-interactive with --base-url --api-key --workspace and optional --email."
+            )
+
+        label = f"{prompt} [{current}]:" if current else f"{prompt}:"
+        try:
+            if secret:
+                value = getpass.getpass(label + " ")
+            else:
+                value = input(label + " ")
+        except EOFError as e:
+            raise RuntimeError(
+                "Input stream closed during interactive setup. "
+                "Use --non-interactive mode for AI/CI execution."
+            ) from e
+
+        value = value.strip()
+        result = value if value else current
+        if required and not result:
+            raise RuntimeError(f"{name} is required.")
+        return result
+
+    base_url = ask("PLANE_BASE_URL", "Plane Base URL", supplied=base_url, required=True)
+    api_key = ask("PLANE_API_KEY", "Plane API Key", supplied=api_key, secret=True, required=True)
+    workspace = ask("PLANE_WORKSPACE", "Plane Workspace Slug", supplied=workspace, required=True)
+    email = ask("MY_EMAIL", "Your Email (optional)", supplied=email)
 
     lines = [
         f'PLANE_BASE_URL="{base_url}"',
@@ -541,9 +584,11 @@ def run_interactive_auth_setup(project_dir: Optional[Union[str, Path]] = None):
     ]
 
     env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("")
+    if not non_interactive:
+        print("")
     print(f"✅ 已写入: {env_path}")
     print("下一步可运行: python3 verify_setup.py")
+    return env_path
 
 
 if __name__ == "__main__":
@@ -555,13 +600,40 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init-auth",
         action="store_true",
-        help="Run interactive first-time auth setup and write project .env",
+        help="Run auth setup and write project .env",
     )
+    parser.add_argument(
+        "--project-dir",
+        help="Target project directory (default: current directory)",
+    )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Do not prompt for input; require values from flags or existing .env",
+    )
+    parser.add_argument("--base-url", help="Plane base URL for auth setup")
+    parser.add_argument("--api-key", help="Plane API key for auth setup")
+    parser.add_argument("--workspace", help="Plane workspace slug for auth setup")
+    parser.add_argument("--email", help="User email for --my-tasks support")
     args = parser.parse_args()
 
+    if any([args.base_url, args.api_key, args.workspace, args.email, args.non_interactive]) and not args.init_auth:
+        parser.error("--base-url/--api-key/--workspace/--email/--non-interactive require --init-auth")
+
     if args.init_auth:
-        run_interactive_auth_setup()
+        run_interactive_auth_setup(
+            project_dir=args.project_dir,
+            base_url=args.base_url,
+            api_key=args.api_key,
+            workspace=args.workspace,
+            email=args.email,
+            non_interactive=args.non_interactive,
+        )
         sys.exit(0)
+
+    if args.project_dir:
+        # project-dir is only meaningful for init-auth to avoid confusion.
+        parser.error("--project-dir requires --init-auth")
 
     # 设置日志
     logging.basicConfig(level=logging.INFO)

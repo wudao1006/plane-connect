@@ -5,3 +5,10 @@ __pycache__/
 *.pyd
 .plane-skills/
 plane_skill_real_test.md
+.venv/
+dist/
+.claude/
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.log
