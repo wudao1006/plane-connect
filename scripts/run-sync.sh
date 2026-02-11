@@ -57,86 +57,11 @@ discover_caller_dir() {
   echo "$candidate"
 }
 
-extract_env_value() {
-  local file="$1"
-  local key="$2"
-  if [ ! -f "$file" ]; then
-    return 0
-  fi
-  awk -F= -v key="$key" '
-    $0 ~ "^[[:space:]]*"key"[[:space:]]*=" {
-      v=$0
-      sub("^[[:space:]]*"key"[[:space:]]*=[[:space:]]*", "", v)
-      gsub(/^[\"\047]|[\"\047]$/, "", v)
-      print v
-      exit
-    }
-  ' "$file"
-}
-
-is_valid_env_dir() {
-  local dir="$1"
-  local env_file="$dir/.env"
-  if [ ! -f "$env_file" ]; then
-    return 1
-  fi
-
-  local base_url api_key workspace
-  base_url="$(extract_env_value "$env_file" "PLANE_BASE_URL")"
-  api_key="$(extract_env_value "$env_file" "PLANE_API_KEY")"
-  workspace="$(extract_env_value "$env_file" "PLANE_WORKSPACE")"
-
-  if [ -z "$base_url" ] || [ -z "$api_key" ] || [ -z "$workspace" ]; then
-    return 1
-  fi
-
-  case "$base_url" in
-    *plane.example.com*|*your-plane-instance*)
-      return 1
-      ;;
-  esac
-
-  case "$api_key" in
-    *your_api_key_here*|*plane_api_xxx*|*demo_key*)
-      return 1
-      ;;
-  esac
-
-  case "$workspace" in
-    *project-workspace*|*your-workspace-slug*)
-      return 1
-      ;;
-  esac
-
-  return 0
-}
-
-discover_config_dir() {
-  local caller="$1"
-
-  if is_valid_env_dir "$caller"; then
-    echo "$caller"
-    return
-  fi
-
-  if is_valid_env_dir "$ROOT_DIR"; then
-    echo "$ROOT_DIR"
-    return
-  fi
-
-  if [ -n "${PLANE_CONFIG_DIR:-}" ] && is_valid_env_dir "${PLANE_CONFIG_DIR:-}"; then
-    echo "${PLANE_CONFIG_DIR:-}"
-    return
-  fi
-
-  echo "$caller"
-}
-
 CALLER_DIR="$(discover_caller_dir)"
 if [ -z "$CALLER_DIR" ] || [ ! -d "$CALLER_DIR" ]; then
   CALLER_DIR="$CURRENT_DIR"
 fi
-CONFIG_DIR="$(discover_config_dir "$CALLER_DIR")"
+CONFIG_DIR="$ROOT_DIR"
 
 cd "$ROOT_DIR"
 export PLANE_CALLER_CWD="$CALLER_DIR"

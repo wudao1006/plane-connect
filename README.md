@@ -116,7 +116,7 @@ From terminal (recommended runtime entry):
 ~/.claude/skills/plane-sync/scripts/run-sync.sh MOBILE --template ai-context
 ```
 
-`run-sync.sh` will auto-detect the caller project directory, load caller `.env`, and write default output to caller project path.
+`run-sync.sh` will auto-detect the caller project directory, always use skill-level `.env` as global shared config, and write default output to caller project path.
 
 ## Python API
 

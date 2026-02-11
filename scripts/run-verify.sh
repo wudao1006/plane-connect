@@ -63,4 +63,4 @@ export PLANE_CALLER_CWD="$CALLER_DIR"
 
 ./scripts/bootstrap-runtime.sh
 
-exec .venv/bin/python verify_setup.py --project-dir "$CALLER_DIR"
+exec .venv/bin/python verify_setup.py --project-dir "$ROOT_DIR"

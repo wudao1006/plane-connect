@@ -27,7 +27,7 @@ Preferred runtime command:
 ~/.claude/skills/plane-sync/scripts/run-sync.sh PROJECT_ID [options]
 ```
 
-`run-sync.sh` auto-bootstraps `.venv` via `uv` when missing, auto-detects caller project directory, loads caller `.env`, and writes default output to caller project path.
+`run-sync.sh` auto-bootstraps `.venv` via `uv` when missing, always loads the skill-level `.env` (global shared config), and writes default output to caller project path.
 
 Do not use `env | grep plane` as the only check.
 `ConfigManager` loads `.env` automatically.
@@ -64,7 +64,7 @@ Optional:
 | `--limit` | integer | `20` | Range: `1-100` |
 | `--template` | string | `ai-context` | One of `ai-context`, `brief`, `standup`, `development` |
 | `--output` | string | `{PROJECT_DIR}/plane.md` | Output markdown path |
-| `--project-dir` | string | auto-detect | Target project dir for `.env` and output |
+| `--project-dir` | string | internal | Runtime config directory (normally auto-set to skill directory) |
 | `--refresh-users` | boolean | `false` | Refresh cached user map |
 
 ## Templates
@@ -78,7 +78,7 @@ Template files live in `plane_skills/templates/`.
 
 ## Workflow
 
-1. Load `.env` and project config.
+1. Load global shared `.env` from the skill directory.
 2. Fetch project and tasks from Plane API.
 3. Apply assignee/priority/status filters.
 4. Render markdown with selected template.
@@ -86,7 +86,7 @@ Template files live in `plane_skills/templates/`.
 
 ## Configuration
 
-Set required environment variables in `.env`:
+Set required environment variables in skill directory `.env`:
 
 ```bash
 PLANE_BASE_URL="https://your-plane-instance.com"

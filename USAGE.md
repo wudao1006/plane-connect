@@ -12,7 +12,7 @@
 python3 -m plane_skills.config_manager --init-auth
 ```
 
-This wizard writes project `.env` with `PLANE_BASE_URL`, `PLANE_API_KEY`, `PLANE_WORKSPACE`, and `MY_EMAIL`.
+This wizard writes skill-level `.env` with `PLANE_BASE_URL`, `PLANE_API_KEY`, `PLANE_WORKSPACE`, and `MY_EMAIL`.
 
 ## First-time Non-interactive Auth (AI/CI)
 
@@ -37,7 +37,7 @@ python3 -m plane_skills.config_manager \
 | `--limit` | integer | `20` | Max number of tasks to include (`1-100`) |
 | `--template` | string | `ai-context` | `ai-context`, `brief`, `standup`, `development` |
 | `--output` | string | `{PROJECT_DIR}/plane.md` | Output markdown filename |
-| `--project-dir` | string | auto-detect | Target project directory for `.env` and output path |
+| `--project-dir` | string | internal | Runtime config directory (auto-set by script; normally skill directory) |
 | `--refresh-users` | boolean | `false` | Refresh cached user mapping |
 
 ## Examples
