@@ -3,15 +3,63 @@ set -euo pipefail
 
 CURRENT_DIR="$(pwd -P)"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INSTALLED_SKILL=0
+case "$ROOT_DIR" in
+  "$HOME/.claude/skills/"*|"$HOME/.codex/skills/"*)
+    INSTALLED_SKILL=1
+    ;;
+esac
 
-# 如果在 skill 目录内执行（例如 `cd ~/.claude/skills/plane-sync && ...`），
-# 且存在 OLDPWD，则优先把 OLDPWD 视为调用方项目目录。
-CALLER_DIR="${PLANE_CALLER_CWD:-$CURRENT_DIR}"
-if [ "$CALLER_DIR" = "$ROOT_DIR" ] && [ -n "${OLDPWD:-}" ] && [ -d "${OLDPWD:-}" ]; then
-  CANDIDATE_DIR="$(cd "$OLDPWD" 2>/dev/null && pwd -P || true)"
-  if [ -n "$CANDIDATE_DIR" ] && [ "$CANDIDATE_DIR" != "$ROOT_DIR" ]; then
-    CALLER_DIR="$CANDIDATE_DIR"
+discover_caller_dir() {
+  local candidate=""
+
+  # 1) 显式传入优先
+  if [ -n "${PLANE_CALLER_CWD:-}" ] && [ -d "${PLANE_CALLER_CWD:-}" ]; then
+    candidate="$(cd "$PLANE_CALLER_CWD" 2>/dev/null && pwd -P || true)"
   fi
+
+  # 2) 当前目录
+  if [ -z "$candidate" ] && [ -d "$CURRENT_DIR" ]; then
+    candidate="$CURRENT_DIR"
+  fi
+
+  # 3) 上一个目录（仅安装模式下启用，适配 `cd skill && bash scripts/run-sync.sh`）
+  if [ "$INSTALLED_SKILL" -eq 1 ] && [ "$candidate" = "$ROOT_DIR" ] && [ -n "${OLDPWD:-}" ] && [ -d "${OLDPWD:-}" ]; then
+    local oldpwd_real
+    oldpwd_real="$(cd "$OLDPWD" 2>/dev/null && pwd -P || true)"
+    if [ -n "$oldpwd_real" ] && [ "$oldpwd_real" != "$ROOT_DIR" ]; then
+      candidate="$oldpwd_real"
+    fi
+  fi
+
+  # 4) 追踪父进程 cwd（仅安装模式下启用，适配 OLDPWD 丢失场景）
+  if [ "$INSTALLED_SKILL" -eq 1 ] && [ "$candidate" = "$ROOT_DIR" ] && [ -d /proc ]; then
+    local pid="$PPID"
+    local depth=0
+    while [ "$pid" -gt 1 ] && [ "$depth" -lt 8 ]; do
+      if [ -r "/proc/$pid/cwd" ]; then
+        local proc_cwd
+        proc_cwd="$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)"
+        if [ -n "$proc_cwd" ] && [ "$proc_cwd" != "$ROOT_DIR" ] && [ -d "$proc_cwd" ]; then
+          candidate="$proc_cwd"
+          break
+        fi
+      fi
+      if [ -r "/proc/$pid/stat" ]; then
+        pid="$(awk '{print $4}' "/proc/$pid/stat" 2>/dev/null || echo 1)"
+      else
+        break
+      fi
+      depth=$((depth + 1))
+    done
+  fi
+
+  echo "$candidate"
+}
+
+CALLER_DIR="$(discover_caller_dir)"
+if [ -z "$CALLER_DIR" ] || [ ! -d "$CALLER_DIR" ]; then
+  CALLER_DIR="$CURRENT_DIR"
 fi
 
 cd "$ROOT_DIR"
