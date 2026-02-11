@@ -1,44 +1,42 @@
-# Daily Standup Report
+# 每日站会任务报告
 
-**Project:** {{project_name}}
-**Date:** {{date}}
-**Team Status:** {{total_tasks}} total tasks
+**项目**: {{project_name}}  
+**日期**: {{date}}  
+**生成时间**: {{datetime}}
 
-## 🎯 What We Accomplished
+## 今日进展
 
-### Recently Completed
+### 已完成
 {{done_tasks}}
 
-## 🔄 What We're Working On
-
-### In Progress
+### 进行中
 {{in_progress_tasks}}
 
-## 🚧 Blockers & Issues
+## 风险与阻塞
 
-### Blocked Tasks
+### 阻塞任务
 {{blocked_tasks}}
 
-### High Priority Items Needing Attention
+### 需优先关注
 {{urgent_priority_tasks}}
 
-## 📋 Coming Up Next
+## 下一步
 
-### Ready to Start
+### 待开始
 {{to_do_tasks}}
 
-## 👥 Team Workload
+## 团队负载
 
-### Task Distribution by Assignee
+### 任务分布
 {{all_tasks_table}}
 
-### Unassigned Tasks
+### 未分配任务
 {{unassigned_tasks}}
 
-## 📊 Sprint Metrics
-- **Completion Rate:** {{completion_rate}}
-- **Active Tasks:** {{in_progress_tasks}}
-- **Backlog Items:** {{pending_tasks}}
+## 关键指标
+- 完成率: {{completion_rate}}
+- 进行中数量: {{in_progress_count}}
+- 待处理数量: {{pending_count}}
 
 ---
-*Generated for daily standup meeting - {{datetime}}*
+*用于站会同步，所有任务项均保留详细描述信息。*

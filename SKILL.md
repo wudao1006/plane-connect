@@ -18,21 +18,16 @@ When a user asks to sync tasks, do not only describe steps.
 2. Wait for command completion and capture output.
 3. Report concrete results: project, total tasks, filtered tasks, output file path.
 4. If command fails, report the exact error and run one diagnostic command (`./scripts/run-verify.sh`).
+5. Never run `pip install` / `pip3 install` / `uv add` manually during skill execution.
+6. Output file should be saved to the caller project directory by default. If user asks another path, pass `--output` explicitly.
 
 Preferred runtime command:
 
 ```bash
-./scripts/run-sync.sh PROJECT_ID [options]
+~/.claude/skills/plane-sync/scripts/run-sync.sh PROJECT_ID [options]
 ```
 
-`run-sync.sh` auto-bootstraps `.venv` via `uv` when missing.
-Do not run `pip install` or `uv add` manually during skill execution.
-
-Fallback (without bundled `.venv`):
-
-```bash
-uv run --with requests --with python-dotenv --with tqdm --with colorama python3 -m plane_skills.plane_sync_skill PROJECT_ID [options]
-```
+`run-sync.sh` auto-bootstraps `.venv` via `uv` when missing, auto-detects caller project directory, loads caller `.env`, and writes default output to caller project path.
 
 Do not use `env | grep plane` as the only check.
 `ConfigManager` loads `.env` automatically.
@@ -68,7 +63,8 @@ Optional:
 | `--status` | string | - | Comma-separated status values |
 | `--limit` | integer | `20` | Range: `1-100` |
 | `--template` | string | `ai-context` | One of `ai-context`, `brief`, `standup`, `development` |
-| `--output` | string | `plane.md` | Output markdown path |
+| `--output` | string | `{PROJECT_DIR}/plane.md` | Output markdown path |
+| `--project-dir` | string | auto-detect | Target project dir for `.env` and output |
 | `--refresh-users` | boolean | `false` | Refresh cached user map |
 
 ## Templates

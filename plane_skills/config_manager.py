@@ -177,7 +177,32 @@ class ConfigManager:
             load_dotenv(dotenv_path=env_file, override=True)
             self.logger.debug(f"Loaded environment variables from {env_file}")
         except Exception as e:
-            self.logger.warning(f"Failed to load .env file {env_file}: {e}")
+            self.logger.warning(f"python-dotenv 不可用，改用内置 .env 解析器: {e}")
+            self._load_env_file_fallback(env_file)
+
+    def _load_env_file_fallback(self, env_file: Path):
+        """无 python-dotenv 时的简易 .env 解析器（支持 KEY=VALUE 和引号）。"""
+        try:
+            for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if not key:
+                    continue
+
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
+                    value = value[1:-1]
+
+                os.environ[key] = value
+            self.logger.debug(f"Loaded environment variables from {env_file} (fallback parser)")
+        except Exception as e:
+            self.logger.warning(f"Failed to load .env with fallback parser {env_file}: {e}")
 
     def _load_global_config(self) -> Optional[Dict[str, Any]]:
         """加载全局配置文件"""

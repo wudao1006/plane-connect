@@ -6,11 +6,11 @@ into various output formats with support for variable replacement,
 task grouping, and Markdown rendering.
 """
 
-import os
 import re
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
+from html import unescape
 
 
 class TemplateEngine:
@@ -87,14 +87,13 @@ class TemplateEngine:
             result = result.replace(pattern, str(value))
 
         # Replace any remaining unreplaced variables with empty string or default message
-        import re
         remaining_vars = re.findall(r'\{\{([^}]+)\}\}', result)
         for var in remaining_vars:
             pattern = f"{{{{{var}}}}}"
             if var.endswith('_tasks') or var.endswith('_count'):
-                result = result.replace(pattern, "No items found")
+                result = result.replace(pattern, "暂无数据")
             else:
-                result = result.replace(pattern, "N/A")
+                result = result.replace(pattern, "无")
 
         return result
 
@@ -176,7 +175,7 @@ class TemplateEngine:
             Formatted task list as string
         """
         if not tasks:
-            return "No tasks found."
+            return "暂无任务。"
 
         if format_type == "bullet":
             return self._format_bullet_list(tasks)
@@ -184,6 +183,8 @@ class TemplateEngine:
             return self._format_numbered_list(tasks)
         elif format_type == "table":
             return self._format_table(tasks)
+        elif format_type == "detailed":
+            return self._format_detailed_list(tasks)
         else:
             return self._format_bullet_list(tasks)
 
@@ -192,8 +193,8 @@ class TemplateEngine:
         lines = []
         for task in tasks:
             name = task.get('name', 'Untitled')
-            priority = task.get('priority', 'None')
-            state = task.get('state', {}).get('name', 'Unknown')
+            priority = self._normalize_priority(task.get('priority'))
+            state = self._get_state_name(task)
 
             # Add priority indicator
             priority_indicator = ""
@@ -215,34 +216,115 @@ class TemplateEngine:
         lines = []
         for i, task in enumerate(tasks, 1):
             name = task.get('name', 'Untitled')
-            priority = task.get('priority', 'None')
-            state = task.get('state', {}).get('name', 'Unknown')
+            priority = self._normalize_priority(task.get('priority'))
+            state = self._get_state_name(task)
 
-            lines.append(f"{i}. **{name}** (Priority: {priority}, Status: {state})")
+            lines.append(f"{i}. **{name}**（优先级: {priority}，状态: {state}）")
 
         return "\n".join(lines)
 
     def _format_table(self, tasks: List[Dict[str, Any]]) -> str:
         """Format tasks as markdown table."""
         if not tasks:
-            return "No tasks found."
+            return "暂无任务。"
 
         lines = [
-            "| Task | Priority | Status | Assignee |",
-            "|------|----------|--------|----------|"
+            "| 任务 | 优先级 | 状态 | 负责人 | 描述 |",
+            "|------|--------|------|--------|------|"
         ]
 
         for task in tasks:
             name = task.get('name', 'Untitled')
-            priority = task.get('priority', 'None')
-            state = task.get('state', {}).get('name', 'Unknown')
+            priority = self._normalize_priority(task.get('priority'))
+            state = self._get_state_name(task)
 
             assignees = task.get('assignees', [])
-            assignee = assignees[0].get('display_name', 'Unassigned') if assignees else 'Unassigned'
+            assignee = assignees[0].get('display_name', '未分配') if assignees else '未分配'
+            desc = self._extract_description(task, max_length=60).replace("\n", " ")
 
-            lines.append(f"| {name} | {priority} | {state} | {assignee} |")
+            lines.append(f"| {name} | {priority} | {state} | {assignee} | {desc} |")
 
         return "\n".join(lines)
+
+    def _format_detailed_list(self, tasks: List[Dict[str, Any]]) -> str:
+        """按详细清单格式输出任务，包含描述与时间信息。"""
+        lines = []
+        for idx, task in enumerate(tasks, 1):
+            name = task.get("name", "未命名任务")
+            task_id = task.get("id", "")
+            state = self._get_state_name(task)
+            priority = self._normalize_priority(task.get("priority"))
+            assignees = task.get("assignees", [])
+            assignee_names = ", ".join(
+                a.get("display_name", "未知") for a in assignees if isinstance(a, dict)
+            ) or "未分配"
+
+            created_at = task.get("created_at") or "无"
+            updated_at = task.get("updated_at") or "无"
+            start_date = task.get("start_date") or "无"
+            target_date = task.get("target_date") or "无"
+            description = self._extract_description(task)
+
+            lines.extend([
+                f"{idx}. **{name}**",
+                f"   - 任务ID: `{task_id}`",
+                f"   - 状态: {state}",
+                f"   - 优先级: {priority}",
+                f"   - 负责人: {assignee_names}",
+                f"   - 开始日期: {start_date}",
+                f"   - 截止日期: {target_date}",
+                f"   - 创建时间: {created_at}",
+                f"   - 更新时间: {updated_at}",
+                f"   - 详细描述: {description}",
+            ])
+
+        return "\n".join(lines)
+
+    def _get_state_name(self, task: Dict[str, Any]) -> str:
+        state = task.get("state", {})
+        if isinstance(state, dict):
+            return state.get("name", "未知")
+        return str(state) if state else "未知"
+
+    def _get_state_group(self, task: Dict[str, Any]) -> str:
+        state = task.get("state", {})
+        if isinstance(state, dict):
+            return str(state.get("group", "")).lower()
+        return ""
+
+    def _normalize_priority(self, priority: Any) -> str:
+        if isinstance(priority, dict):
+            priority = priority.get("key") or priority.get("name")
+        if not priority:
+            return "none"
+        return str(priority).lower()
+
+    def _extract_description(self, task: Dict[str, Any], max_length: int = 300) -> str:
+        description = (
+            task.get("description_stripped")
+            or task.get("description_text")
+            or task.get("description")
+            or task.get("description_html")
+            or ""
+        )
+        if not description:
+            return "无描述"
+
+        text = self._strip_html(str(description))
+        text = re.sub(r"\s+", " ", text).strip()
+        if not text:
+            return "无描述"
+        if len(text) > max_length:
+            return text[: max_length - 3] + "..."
+        return text
+
+    def _strip_html(self, value: str) -> str:
+        if not value:
+            return ""
+        text = re.sub(r"<br\s*/?>", "\n", value, flags=re.IGNORECASE)
+        text = re.sub(r"</p\s*>", "\n", text, flags=re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", "", text)
+        return unescape(text)
 
     def get_template_variables(self, tasks: List[Dict[str, Any]],
                              project_name: str = "",
@@ -260,11 +342,36 @@ class TemplateEngine:
         """
         now = datetime.now()
 
+        # 按状态分组（优先使用 state.group，兼容旧数据）
+        done_groups = {"completed", "done"}
+        in_progress_groups = {"started", "in_progress", "in-progress"}
+        pending_groups = {"unstarted", "backlog", "todo", "to_do"}
+        blocked_groups = {"blocked"}
+
+        done_list = []
+        in_progress_list = []
+        pending_list = []
+        blocked_list = []
+
+        for task in tasks:
+            group = self._get_state_group(task)
+            state_name = self._get_state_name(task).lower()
+            if group in done_groups or state_name in {"done", "completed"}:
+                done_list.append(task)
+            elif group in in_progress_groups or state_name in {"in progress", "in-progress", "started"}:
+                in_progress_list.append(task)
+            elif group in blocked_groups or state_name == "blocked":
+                blocked_list.append(task)
+            elif group in pending_groups or state_name in {"todo", "to do", "backlog", "unstarted"}:
+                pending_list.append(task)
+            else:
+                pending_list.append(task)
+
         # Basic statistics
         total_tasks = len(tasks)
-        completed_tasks = len([t for t in tasks if t.get('state', {}).get('name', '').lower() in ['done', 'completed']])
-        in_progress_tasks = len([t for t in tasks if t.get('state', {}).get('name', '').lower() in ['in progress', 'in-progress']])
-        pending_tasks = total_tasks - completed_tasks - in_progress_tasks
+        completed_tasks = len(done_list)
+        in_progress_tasks = len(in_progress_list)
+        pending_tasks = len(pending_list)
 
         # Group tasks
         tasks_by_status = self.group_tasks_by_status(tasks)
@@ -284,14 +391,17 @@ class TemplateEngine:
             # Task statistics
             'total_tasks': total_tasks,
             'completed_tasks': completed_tasks,
-            'in_progress_tasks': in_progress_tasks,
+            'in_progress_count': in_progress_tasks,
             'pending_tasks': pending_tasks,
+            'pending_count': pending_tasks,
+            'blocked_count': len(blocked_list),
             'completion_rate': f"{(completed_tasks/total_tasks*100):.1f}%" if total_tasks > 0 else "0%",
 
             # Task lists (formatted)
             'all_tasks_bullet': self.format_task_list(tasks, "bullet"),
             'all_tasks_numbered': self.format_task_list(tasks, "numbered"),
             'all_tasks_table': self.format_task_list(tasks, "table"),
+            'all_tasks_detailed': self.format_task_list(tasks, "detailed"),
 
             # Tasks by status
             'tasks_by_status': tasks_by_status,
@@ -306,13 +416,14 @@ class TemplateEngine:
             variables[f'{safe_status}_count'] = len(status_tasks)
 
         # Add common status aliases
-        variables['done_tasks'] = variables.get('done_tasks', variables.get('completed_tasks', 'No completed tasks'))
-        variables['to_do_tasks'] = variables.get('to_do_tasks', variables.get('pending_tasks', 'No pending tasks'))
-        variables['blocked_tasks'] = 'No blocked tasks found'
-        variables['review_tasks'] = 'No tasks in review'
-        variables['testing_tasks'] = 'No tasks in testing'
-        variables['ready_tasks'] = 'No tasks ready for deployment'
-        variables['technical_debt_tasks'] = 'No technical debt items identified'
+        variables['done_tasks'] = self.format_task_list(done_list, "detailed")
+        variables['in_progress_tasks'] = self.format_task_list(in_progress_list, "detailed")
+        variables['to_do_tasks'] = self.format_task_list(pending_list, "detailed")
+        variables['blocked_tasks'] = self.format_task_list(blocked_list, "detailed")
+        variables['review_tasks'] = '暂无评审任务'
+        variables['testing_tasks'] = '暂无测试任务'
+        variables['ready_tasks'] = '暂无待发布任务'
+        variables['technical_debt_tasks'] = '暂无技术债任务'
         variables['unassigned_tasks'] = self.format_task_list([t for t in tasks if not t.get('assignees')], "bullet")
 
         # Add formatted lists for each priority

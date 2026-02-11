@@ -28,6 +28,8 @@ cp .env.example .env
 ./scripts/run-sync.sh OPINION --template brief --limit 10
 ```
 
+Default output will be saved to caller project directory as `plane.md`.
+
 ## Alternative: Source Clone (auto-bootstrap)
 
 ### Claude Code
@@ -48,6 +50,11 @@ cd ~/.codex/skills/plane-sync
 
 Source mode no longer requires manual pip setup:
 `./scripts/run-verify.sh` and `./scripts/run-sync.sh` auto-bootstrap `.venv` via `uv` when missing.
+If running from another directory, call the script by absolute path (recommended) so output lands in your working project:
+
+```bash
+~/.claude/skills/plane-sync/scripts/run-sync.sh OPINION --template ai-context
+```
 
 ## Configure Auth
 

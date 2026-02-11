@@ -5,7 +5,6 @@ Plane Sync Skills - 主入口函数
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -39,6 +38,7 @@ def parse_skill_args(args_string: str = "") -> Dict[str, Any]:
     parser.add_argument('--limit', type=int, default=20, help='限制任务数量')
     parser.add_argument('--template', default='ai-context', help='模板类型')
     parser.add_argument('--output', default='plane.md', help='输出文件名')
+    parser.add_argument('--project-dir', help='项目目录（用于加载 .env 和输出文件路径）')
     parser.add_argument('--refresh-users', action='store_true', help='刷新用户缓存')
 
     try:
@@ -50,9 +50,9 @@ def parse_skill_args(args_string: str = "") -> Dict[str, Any]:
 
         parsed_args = parser.parse_args(args_list)
         return vars(parsed_args)
-    except SystemExit:
-        # argparse调用sys.exit，我们捕获并返回空字典
-        return {}
+    except SystemExit as e:
+        # argparse调用sys.exit（如 --help），返回退出标记避免后续误执行
+        return {"_parser_exit": True, "_exit_code": e.code}
     except Exception as e:
         print(f"参数解析错误: {e}")
         return {}
@@ -91,6 +91,23 @@ def format_error_message(error: Exception, verbose: bool = False) -> str:
         return error_msg
 
 
+def resolve_output_path(output: str, project_dir: Path) -> Path:
+    """将输出路径解析到项目目录，避免受技能目录影响。"""
+    output_path = Path(output)
+    if output_path.is_absolute():
+        return output_path
+
+    # 可选：支持通过 STORAGE_DIR 指定统一输出目录（相对项目目录）
+    storage_dir = os.getenv("STORAGE_DIR", "").strip()
+    if storage_dir:
+        storage_path = Path(storage_dir)
+        if not storage_path.is_absolute():
+            storage_path = project_dir / storage_path
+        return storage_path / output_path
+
+    return project_dir / output_path
+
+
 def plane_sync_skill(
     project_id: Optional[str] = None,
     my_tasks: bool = False,
@@ -100,6 +117,7 @@ def plane_sync_skill(
     limit: int = 20,
     template: str = "ai-context",
     output: str = "plane.md",
+    project_dir: Optional[str] = None,
     refresh_users: bool = False,
     args_string: str = "",
     **kwargs
@@ -116,6 +134,7 @@ def plane_sync_skill(
         limit: 限制任务数量
         template: 模板类型
         output: 输出文件名
+        project_dir: 项目目录（用于加载 .env 和输出文件路径）
         refresh_users: 是否刷新用户缓存
         args_string: 参数字符串（用于Skills调用）
         **kwargs: 其他参数
@@ -130,6 +149,8 @@ def plane_sync_skill(
         # 如果提供了args_string，解析参数
         if args_string:
             parsed_args = parse_skill_args(args_string)
+            if parsed_args.get("_parser_exit"):
+                return ""
             # 合并参数，args_string中的参数优先
             project_id = parsed_args.get('project_id') or project_id
             my_tasks = parsed_args.get('my_tasks', my_tasks)
@@ -139,11 +160,13 @@ def plane_sync_skill(
             limit = parsed_args.get('limit', limit)
             template = parsed_args.get('template', template)
             output = parsed_args.get('output', output)
+            project_dir = parsed_args.get('project_dir') or project_dir
             refresh_users = parsed_args.get('refresh_users', refresh_users)
 
         # 1. 初始化配置管理器
         print("🔧 初始化配置...")
-        config_manager = ConfigManager()
+        resolved_project_dir = Path(project_dir).expanduser().resolve() if project_dir else Path.cwd()
+        config_manager = ConfigManager(project_dir=resolved_project_dir)
         config = config_manager.get_config()
 
         # 验证配置
@@ -251,7 +274,8 @@ def plane_sync_skill(
         report_content = template_engine.render(template, filtered_tasks, project_name, custom_vars)
 
         # 11. 保存文件
-        output_path = Path(output)
+        output_path = resolve_output_path(output, resolved_project_dir)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(report_content, encoding='utf-8')
 
         # 12. 生成执行摘要
@@ -272,7 +296,7 @@ def plane_sync_skill(
 
 📁 输出文件已保存到: {output_path.absolute()}
 
-💡 现在AI可以基于 {output} 文件了解项目任务状态和优先级!"""
+💡 现在AI可以基于 {output_path} 文件了解项目任务状态和优先级!"""
 
         print(summary)
         return summary

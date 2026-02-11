@@ -5,9 +5,9 @@ Plane Skills 快速验证脚本
 验证核心功能是否正常工作
 """
 
-import os
 import re
 import sys
+import argparse
 from pathlib import Path
 
 # 添加项目路径
@@ -20,7 +20,6 @@ def check_dependencies():
 
     required_modules = [
         ('requests', 'requests'),
-        ('python-dotenv', 'dotenv'),
         ('tqdm', 'tqdm'),
         ('colorama', 'colorama')
     ]
@@ -36,8 +35,14 @@ def check_dependencies():
 
     if missing:
         print(f"\n⚠️  缺少依赖项: {', '.join(missing)}")
-        print("请运行: pip install -r requirements.txt")
+        print("请运行: ./scripts/run-verify.sh（自动引导运行时环境）")
         return False
+
+    try:
+        __import__('dotenv')
+        print("  ✅ python-dotenv (可选)")
+    except ImportError:
+        print("  ℹ️  python-dotenv 未安装（将使用内置 .env 解析器）")
 
     return True
 
@@ -70,38 +75,45 @@ def check_modules():
         print(f"  ❌ 模块导入失败: {e}")
         return False
 
-def check_config():
+def check_config(project_dir: Path):
     """检查配置文件"""
     print("\n⚙️  检查配置...")
 
-    env_file = Path('.env')
-    env_example = Path('.env.example')
+    env_file = project_dir / '.env'
+    env_example = project_dir / '.env.example'
+    fallback_env_example = project_root / '.env.example'
 
-    if not env_example.exists():
+    if env_example.exists():
+        print("  ✅ .env.example 存在")
+    elif fallback_env_example.exists():
+        print(f"  ✅ .env.example 存在（技能目录）: {fallback_env_example}")
+    else:
         print("  ❌ .env.example 文件不存在")
         return False
-    else:
-        print("  ✅ .env.example 存在")
 
     if not env_file.exists():
-        print("  ⚠️  .env 文件不存在，请复制 .env.example 并配置")
+        print(f"  ⚠️  .env 文件不存在，请在 {project_dir} 下创建并配置")
         return False
     else:
-        print("  ✅ .env 文件存在")
+        print(f"  ✅ .env 文件存在: {env_file}")
 
-    # 检查必要的环境变量
-    from dotenv import load_dotenv
-    load_dotenv()
+    # 通过 ConfigManager 统一读取（支持 python-dotenv 缺失时的兜底解析器）
+    from plane_skills.config_manager import ConfigManager
+    cfg = ConfigManager(project_dir=project_dir).get_config()
 
-    required_vars = ['PLANE_BASE_URL', 'PLANE_API_KEY', 'PLANE_WORKSPACE']
     missing_vars = []
+    checks = [
+        ("PLANE_BASE_URL", cfg.plane.base_url),
+        ("PLANE_API_KEY", cfg.plane.api_key),
+        ("PLANE_WORKSPACE", cfg.plane.workspace_slug),
+    ]
 
-    for var in required_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-            print(f"  ❌ {var} 未设置")
+    for key, value in checks:
+        if not value:
+            missing_vars.append(key)
+            print(f"  ❌ {key} 未设置")
         else:
-            print(f"  ✅ {var} 已设置")
+            print(f"  ✅ {key} 已设置")
 
     if missing_vars:
         print(f"\n⚠️  请在 .env 文件中设置: {', '.join(missing_vars)}")
@@ -189,14 +201,15 @@ def test_basic_functionality():
         print(f"  ❌ 功能测试失败: {e}")
         return False
 
-def main():
+def main(project_dir: Path):
     """主函数"""
     print("🚀 Plane Skills 快速验证\n")
+    print(f"📂 项目目录: {project_dir}\n")
 
     checks = [
         ("依赖项检查", check_dependencies),
         ("模块检查", check_modules),
-        ("配置检查", check_config),
+        ("配置检查", lambda: check_config(project_dir)),
         ("模板检查", check_templates),
         ("Skills文件检查", check_skills_file),
         ("基本功能测试", test_basic_functionality)
@@ -225,11 +238,20 @@ def main():
     else:
         print(f"\n⚠️  有 {total - passed} 项检查失败，请修复后重试。")
         print("\n🔧 常见解决方案:")
-        print("  1. 安装依赖: pip install -r requirements.txt")
+        print("  1. 自动引导运行时: ./scripts/run-verify.sh")
         print("  2. 配置环境: cp .env.example .env && 编辑 .env")
         print("  3. 检查文件完整性")
         return False
 
 if __name__ == "__main__":
-    success = main()
+    parser = argparse.ArgumentParser(description="Plane Skills quick setup verification")
+    parser.add_argument(
+        "--project-dir",
+        default=str(Path.cwd()),
+        help="Target project directory for .env validation (default: current directory)",
+    )
+    args = parser.parse_args()
+
+    target_dir = Path(args.project_dir).expanduser().resolve()
+    success = main(target_dir)
     sys.exit(0 if success else 1)

@@ -1,60 +1,48 @@
-# AI Context Report
+# Plane 任务同步报告（AI 上下文）
 
-**Project:** {{project_name}}
-**Generated:** {{datetime}}
-**Total Tasks:** {{total_tasks}}
+**项目**: {{project_name}}  
+**生成时间**: {{datetime}}  
+**任务总数**: {{total_tasks}}
 
-## Executive Summary
+## 一、项目概览
 
-This report provides comprehensive context about the current project status for AI analysis and decision-making.
+- 已完成: {{completed_tasks}}
+- 进行中: {{in_progress_count}}
+- 待处理: {{pending_count}}
+- 阻塞: {{blocked_count}}
+- 完成率: {{completion_rate}}
 
-### Key Metrics
-- **Total Tasks:** {{total_tasks}}
-- **Completed:** {{completed_tasks}} ({{completion_rate}})
-- **In Progress:** {{in_progress_tasks}}
-- **Pending:** {{pending_tasks}}
+## 二、按状态任务清单（含详细描述）
 
-## Task Analysis
-
-### Current Status Distribution
-
-#### Completed Tasks
+### 已完成
 {{done_tasks}}
 
-#### In Progress Tasks
+### 进行中
 {{in_progress_tasks}}
 
-#### Pending Tasks
+### 待处理
 {{to_do_tasks}}
 
-### Priority Breakdown
+### 阻塞
+{{blocked_tasks}}
 
-#### High Priority Tasks
+## 三、按优先级关注点
+
+### 紧急
+{{urgent_priority_tasks}}
+
+### 高优先级
 {{high_priority_tasks}}
 
-#### Medium Priority Tasks
+### 中优先级
 {{medium_priority_tasks}}
 
-#### Low Priority Tasks
+### 低优先级
 {{low_priority_tasks}}
 
-## Detailed Task Inventory
+## 四、全量任务明细（每项含描述）
 
-{{all_tasks_table}}
-
-## Context for AI Processing
-
-### Task Patterns
-- High-priority items requiring immediate attention
-- Blocked tasks that may need dependency resolution
-- Resource allocation across team members
-- Progress velocity and completion trends
-
-### Recommended Focus Areas
-1. **Critical Path Items:** Tasks blocking other work
-2. **High-Priority Backlog:** Items with urgent or high priority
-3. **Resource Bottlenecks:** Overloaded assignees or unassigned work
-4. **Quality Gates:** Tasks requiring review or validation
+{{all_tasks_detailed}}
 
 ---
-*This report is optimized for AI analysis and contains structured data for automated processing and decision support.*
+*本报告面向 AI 与团队协作，保留了任务详细描述、负责人、时间与状态信息。*

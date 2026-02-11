@@ -52,7 +52,7 @@ cp .env.example .env
 - Sync issues from a Plane project
 - Filter by assignee, priority, and status
 - Generate reports with templates: `ai-context`, `brief`, `standup`, `development`
-- Save report to a local markdown file (default: `plane.md`)
+- Save report to the caller project directory by default (`{PROJECT_DIR}/plane.md`)
 
 ## Project structure
 
@@ -66,17 +66,10 @@ verify_setup.py          # Environment and structure checks
 
 ## Setup
 
-Preferred (works even when `pip` is unavailable):
+Preferred:
 
 ```bash
-uv run --with requests --with python-dotenv --with tqdm --with colorama python3 verify_setup.py
-```
-
-Alternative (if `pip` is available):
-
-```bash
-pip install -r requirements.txt
-cp .env.example .env
+./scripts/run-verify.sh
 ```
 
 Configure `.env`:
@@ -117,6 +110,14 @@ In Claude Code:
 /plane-sync MOBILE --template standup --limit 15 --output standup.md
 ```
 
+From terminal (recommended runtime entry):
+
+```bash
+~/.claude/skills/plane-sync/scripts/run-sync.sh MOBILE --template ai-context
+```
+
+`run-sync.sh` will auto-detect the caller project directory, load caller `.env`, and write default output to caller project path.
+
 ## Python API
 
 ```python
@@ -133,6 +134,6 @@ plane_sync_skill(
 ## Verification
 
 ```bash
-python3 verify_setup.py
+./scripts/run-verify.sh
 python3 /home/wudao/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
 ```

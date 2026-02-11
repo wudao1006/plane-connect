@@ -30,11 +30,14 @@ def test_argument_parsing() -> bool:
     try:
         from plane_skills.plane_sync_skill import parse_skill_args
 
-        args = parse_skill_args("MOBILE --my-tasks --priority high,urgent --limit 10")
+        args = parse_skill_args(
+            "MOBILE --my-tasks --priority high,urgent --limit 10 --project-dir /tmp/demo"
+        )
         assert args["project_id"] == "MOBILE"
         assert args["my_tasks"] is True
         assert args["priority"] == "high,urgent"
         assert args["limit"] == 10
+        assert args["project_dir"] == "/tmp/demo"
 
         empty = parse_skill_args("")
         assert empty == {}
@@ -196,6 +199,49 @@ def test_integration_with_mocks() -> bool:
         return False
 
 
+def test_default_output_in_project_dir() -> bool:
+    print("\n🧪 测试默认输出路径（project_dir）...")
+    try:
+        from plane_skills import plane_sync_skill
+
+        with patch("plane_skills.plane_sync_skill.ConfigManager") as mock_config_mgr, \
+             patch("plane_skills.plane_sync_skill.PlaneClient") as mock_client_cls, \
+             patch("plane_skills.plane_sync_skill.get_cache_manager"):
+
+            mock_config = Mock()
+            mock_config.plane.base_url = "https://test.example.com"
+            mock_config.plane.api_key = "test-key"
+            mock_config.plane.workspace_slug = "workspace"
+            mock_config.user.email = "test@example.com"
+
+            mock_config_mgr.return_value.get_config.return_value = mock_config
+            mock_config_mgr.return_value.validate_config.return_value = []
+
+            mock_client = Mock()
+            mock_client.list_projects.return_value = [
+                {"id": "p1", "identifier": "TEST", "name": "测试项目"}
+            ]
+            mock_client.list_project_issues.return_value = [
+                {"id": "i1", "name": "测试任务", "priority": "high", "state": {"name": "Todo"}, "assignees": []}
+            ]
+            mock_client_cls.return_value = mock_client
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                result = plane_sync_skill(
+                    project_id="TEST",
+                    template="brief",
+                    project_dir=temp_dir,
+                )
+                assert "✅ Plane任务同步完成" in result
+                assert os.path.exists(os.path.join(temp_dir, "plane.md"))
+
+        print("✅ 默认输出路径通过")
+        return True
+    except Exception as exc:
+        print(f"❌ 默认输出路径失败: {exc}")
+        return False
+
+
 def run_all_tests() -> bool:
     print("🚀 运行 Plane Skills 精简测试...\n")
     tests = [
@@ -206,6 +252,7 @@ def run_all_tests() -> bool:
         test_non_interactive_auth_setup,
         test_template_render,
         test_integration_with_mocks,
+        test_default_output_in_project_dir,
     ]
 
     passed = 0

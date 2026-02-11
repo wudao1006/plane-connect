@@ -1,78 +1,56 @@
-# Development Status Report
+# 研发进度报告
 
-**Project:** {{project_name}}
-**Generated:** {{datetime}}
-**Development Cycle:** {{total_tasks}} tasks tracked
+**项目**: {{project_name}}  
+**生成时间**: {{datetime}}  
+**任务总数**: {{total_tasks}}
 
-## 🚀 Development Pipeline
+## 研发流转状态
 
-### 🔧 In Development
+### 开发中
 {{in_progress_tasks}}
 
-### ✅ Ready for Review
+### 待评审
 {{review_tasks}}
 
-### 🧪 Testing & QA
+### 测试中
 {{testing_tasks}}
 
-### 🚢 Ready for Deployment
+### 待发布
 {{ready_tasks}}
 
-## 🎯 Sprint Progress
+## 当前迭代进展
 
-### Completed This Iteration
+### 本轮已完成
 {{done_tasks}}
 
-### Current Sprint Backlog
+### 当前待办
 {{to_do_tasks}}
 
-## 🔥 Critical Development Items
+## 关键事项
 
-### High Priority Features
+### 高优先级需求
 {{high_priority_tasks}}
 
-### Urgent Bug Fixes
+### 紧急事项
 {{urgent_priority_tasks}}
 
-### Technical Debt
+### 技术债
 {{technical_debt_tasks}}
 
-## 👨‍💻 Developer Assignments
+## 开发指标
 
-### Task Distribution
-{{all_tasks_table}}
+| 指标 | 数值 |
+|------|------|
+| 总任务数 | {{total_tasks}} |
+| 已完成 | {{completed_tasks}} |
+| 进行中 | {{in_progress_count}} |
+| 评审中 | {{review_count}} |
+| 测试中 | {{testing_count}} |
+| 完成率 | {{completion_rate}} |
 
-### Unassigned Development Tasks
-{{unassigned_tasks}}
+## 全量任务明细（含详细描述）
 
-## 📊 Development Metrics
-
-| Metric | Value |
-|--------|-------|
-| Total Tasks | {{total_tasks}} |
-| Completed | {{completed_tasks}} |
-| In Development | {{in_progress_tasks}} |
-| Code Review | {{review_count}} |
-| Testing | {{testing_count}} |
-| Completion Rate | {{completion_rate}} |
-
-## 🔍 Code Quality & Technical Focus
-
-### Areas Requiring Attention
-- Tasks with extended development time
-- Items blocked by dependencies
-- Code review bottlenecks
-- Testing and QA pipeline
-
-### Recommended Actions
-1. **Priority Review:** Focus on high-impact, high-priority items
-2. **Dependency Resolution:** Clear blockers for waiting tasks
-3. **Code Review:** Expedite review process for completed work
-4. **Testing Coverage:** Ensure adequate QA for critical features
-
-## 📋 Detailed Task Breakdown
-
-{{all_tasks_table}}
+{{all_tasks_detailed}}
 
 ---
-*Development-focused report for technical team coordination and sprint planning*
+*面向研发协作，包含每个任务的详细描述与关键元信息。*
